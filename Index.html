@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mortgage Calculators</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mortgage Calc">
+    <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/tailwindlabs/heroicons/24/solid/home.svg">
+    <meta name="theme-color" content="#3b82f6">
+    
+    <!-- External Stylesheets -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    
+    <style>
+        /* Custom styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Loading state */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+        
+        /* iOS specific styling */
+        @supports (-webkit-touch-callout: none) {
+            input, select {
+                font-size: 16px !important; /* Prevents zoom on focus */
+            }
+            .fixed-bottom {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+        
+        /* Hide scroll bar but allow scrolling */
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Spinner animation */
+        .spinner {
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top: 3px solid rgba(59, 130, 246, 1);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="app-container max-w-4xl mx-auto">
+        <!-- App Header -->
+        <header class="bg-blue-600 text-white p-4 shadow-md">
+            <h1 class="text-xl font-bold text-center">Mortgage Calculators</h1>
+        </header>
+        
+        <!-- Calculator Tabs -->
+        <div class="tabs bg-white shadow-sm">
+            <div class="flex">
+                <button id="tab1" class="tab-btn flex-1 py-3 px-4 font-medium text-center border-b-2 border-blue-600 text-blue-600">
+                    Payment Calculator
+                </button>
+                <button id="tab2" class="tab-btn flex-1 py-3 px-4 font-medium text-center border-b-2 border-transparent text-gray-500">
+                    Affordability Calculator
+                </button>
+            </div>
+        </div>
+        
+        <!-- Tab Content -->
+        <div class="tab-container">
+            <div id="content1" class="tab-content active">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+                <div id="payment-calculator-container"></div>
+            </div>
+            
+            <div id="content2" class="tab-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+                <div id="affordability-calculator-container"></div>
+            </div>
+        </div>
+        
+        <!-- Footer with Installation Instructions -->
+        <footer class="mt-6 p-4 bg-gray-50 rounded-lg shadow text-sm text-gray-600">
+            <h3 class="font-bold mb-2">Add to Home Screen</h3>
+            <ol class="list-decimal pl-5 space-y-1">
+                <li>Tap the share icon <span class="inline-block w-5 h-5 align-text-bottom">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13 4.5a2.5 2.5 0 11.5 0 2.5 2.5 0 010 5h-3a.5.5 0 010-1h3a1.5 1.5 0 000-3h-3a.5.5 0 010-1h3zM7 15.5a2.5 2.5 0 110-5h3a.5.5 0 010 1H7a1.5 1.5 0 000 3h3a.5.5 0 010 1H7z" />
+                        <path d="M11 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                    </svg>
+                </span> at the bottom of Safari</li>
+                <li>Scroll down and tap "Add to Home Screen"</li>
+                <li>Tap "Add" in the top right</li>
+            </ol>
+            <p class="mt-2">Once added, you can use this app offline!</p>
+        </footer>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    
+    <!-- Payment Calculator Component -->
+    <script type="text/babel">
+        // Mortgage Payment Calculator Component
+        const MortgageCalculator = () => {
+            // Primary state values
+            const [loanAmount, setLoanAmount] = React.useState(400000);
+            const [interestRate, setInterestRate] = React.useState(6.6);
+            const [loanTerm, setLoanTerm] = React.useState(30);
+            const [homePrice, setHomePrice] = React.useState(480000);
+            const [downPayment, setDownPayment] = React.useState(80000);
+            const [propertyTax, setPropertyTax] = React.useState(3000);
+            const [insurance, setInsurance] = React.useState(1200);
+            
+            // Calculated values
+            const [monthlyPayment, setMonthlyPayment] = React.useState(0);
+            const [principalAndInterest, setPrincipalAndInterest] = React.useState(0);
+            const [totalInterest, setTotalInterest] = React.useState(0);
+            const [totalCost, setTotalCost] = React.useState(0);
+            const [downPaymentPercent, setDownPaymentPercent] = React.useState(16.67);
+            const [amortizationSchedule, setAmortizationSchedule] = React.useState([]);
+            
+            // UI state
+            const [showSchedule, setShowSchedule] = React.useState(false);
+            const [maxYearsToShow, setMaxYearsToShow] = React.useState(5);
+            
+            // Safe number parsing with defaults
+            const safeParseInt = React.useCallback((value, defaultValue = 0) => {
+                if (value === '' || value === '-' || value === '+') {
+                    return defaultValue;
+                }
+                const parsed = parseInt(value);
+                return isNaN(parsed) ? defaultValue : parsed;
+            }, []);
+            
+            const safeParseFloat = React.useCallback((value, defaultValue = 0) => {
+                if (value === '' || value === '-' || value === '+' || value === '.') {
+                    return defaultValue;
+                }
+                const parsed = parseFloat(value);
+                return isNaN(parsed) ? defaultValue : parsed;
+            }, []);
+            
+            // Calculate mortgage details when inputs change
+            React.useEffect(() => {
+                calculateMortgage();
+            }, [loanAmount, interestRate, loanTerm, propertyTax, insurance]);
+            
+            // Home price change handler
+            const handleHomePriceChange = React.useCallback((value) => {
+                // Check if the value is empty to allow intermediate states during typing
+                if (value === '') {
+                    setHomePrice(0);
+                    setDownPayment(0);
+                    setLoanAmount(0);
+                    return;
+                }
+                
+                const price = safeParseInt(value, 0);
+                if (price >= 0) {
+                    setHomePrice(price);
+                    // Keep down payment percentage consistent
+                    const newDownPayment = Math.round((price * downPaymentPercent) / 100);
+                    setDownPayment(newDownPayment);
+                    setLoanAmount(price - newDownPayment);
+                }
+            }, [downPaymentPercent, safeParseInt]);
+            
+            // Down payment change handler
+            const handleDownPaymentChange = React.useCallback((value) => {
+                if (value === '') {
+                    setDownPayment(0);
+                    setLoanAmount(homePrice);
+                    setDownPaymentPercent(0);
+                    return;
+                }
+                
+                const payment = safeParseInt(value, 0);
+                if (payment >= 0 && payment <= homePrice) {
+                    setDownPayment(payment);
+                    setLoanAmount(homePrice - payment);
+                    // Update percentage without triggering another effect
+                    const newPercent = homePrice > 0 ? (payment / homePrice) * 100 : 0;
+                    setDownPaymentPercent(newPercent);
+                }
+            }, [homePrice, safeParseInt]);
+            
+            // Down payment percentage change handler
+            const handleDownPaymentPercentChange = React.useCallback((value) => {
+                if (value === '' || value === '.') {
+                    setDownPaymentPercent(0);
+                    setDownPayment(0);
+                    setLoanAmount(homePrice);
+                    return;
+                }
+                
+                const percent = safeParseFloat(value, 0);
+                if (percent >= 0 && percent <= 100) {
+                    setDownPaymentPercent(percent);
+                    // Calculate new down payment amount
+                    const newDownPayment = Math.round((homePrice * percent) / 100);
+                    setDownPayment(newDownPayment);
+                    setLoanAmount(homePrice - newDownPayment);
+                }
+            }, [homePrice, safeParseFloat]);
+            
+            // Loan amount change handler
+            const handleLoanAmountChange = React.useCallback((value) => {
+                if (value === '') {
+                    setLoanAmount(0);
+                    setDownPayment(homePrice);
+                    setDownPaymentPercent(100);
+                    return;
+                }
+                
+                const amount = safeParseInt(value, 0);
+                if (amount >= 0 && amount <= homePrice) {
+                    setLoanAmount(amount);
+                    // Update down payment
+                    const newDownPayment = homePrice - amount;
+                    setDownPayment(newDownPayment);
+                    // Update percentage
+                    const newPercent = homePrice > 0 ? (newDownPayment / homePrice) * 100 : 0;
+                    setDownPaymentPercent(newPercent);
+                }
+            }, [homePrice, safeParseInt]);
+            
+            // Interest rate change handler
+            const handleInterestRateChange = React.useCallback((value) => {
+                // Allow intermediate decimal states like "." and "6."
+                if (value === '') {
+                    setInterestRate(0);
+                    return;
+                }
+                
+                // Check if it's a valid number or decimal in progress
+                const isValidDecimalInput = /^[0-9]*\.?[0-9]*$/.test(value);
+                
+                if (isValidDecimalInput) {
+                    // If it's just a decimal point or ends with a decimal point,
+                    // store the string value directly to maintain cursor position
+                    if (value === '.' || value.endsWith('.')) {
+                        setInterestRate(value);
+                        return;
+                    }
+                    
+                    // Otherwise parse it as a float
+                    const rate = parseFloat(value);
+                    if (!isNaN(rate) && rate >= 0) {
+                        setInterestRate(rate);
+                    }
+                }
+            }, []);
+            
+            // Property tax change handler
+            const handlePropertyTaxChange = React.useCallback((value) => {
+                if (value === '') {
+                    setPropertyTax(0);
+                    return;
+                }
+                
+                const tax = safeParseInt(value, 0);
+                if (tax >= 0) {
+                    setPropertyTax(tax);
+                }
+            }, [safeParseInt]);
+            
+            // Insurance change handler
+            const handleInsuranceChange = React.useCallback((value) => {
+                if (value === '') {
+                    setInsurance(0);
+                    return;
+                }
+                
+                const ins = safeParseInt(value, 0);
+                if (ins >= 0) {
+                    setInsurance(ins);
+                }
+            }, [safeParseInt]);
+            
+            // Calculate mortgage
+            const calculateMortgage = React.useCallback(() => {
+                // Monthly interest rate (safeguard against zero)
+                const monthlyInterest = (interestRate > 0 ? interestRate : 0.01) / 100 / 12;
+                // Number of payments
+                const numberOfPayments = loanTerm * 12;
+                
+                // Calculate monthly principal and interest
+                let monthly = 0;
+                if (loanAmount > 0 && interestRate > 0) {
+                    const x = Math.pow(1 + monthlyInterest, numberOfPayments);
+                    monthly = (loanAmount * x * monthlyInterest) / (x - 1);
+                }
+                
+                setPrincipalAndInterest(monthly);
+                
+                // Calculate total monthly payment including taxes and insurance
+                const monthlyTax = propertyTax / 12;
+                const monthlyInsurance = insurance / 12;
+                const totalMonthlyPayment = monthly + monthlyTax + monthlyInsurance;
+                
+                setMonthlyPayment(totalMonthlyPayment);
+                
+                // Calculate total interest
+                const totalInterestPaid = (monthly * numberOfPayments) - loanAmount;
+                setTotalInterest(Math.max(0, totalInterestPaid));
+                
+                // Calculate total cost
+                const totalMortgageCost = loanAmount + Math.max(0, totalInterestPaid) + (propertyTax * loanTerm) + (insurance * loanTerm);
+                setTotalCost(totalMortgageCost);
+                
+                // Generate amortization schedule
+                const schedule = [];
+                let balance = loanAmount;
+                let totalInterestPaidSoFar = 0;
+                let totalPrincipalPaidSoFar = 0;
+                
+                for (let year = 1; year <= loanTerm; year++) {
+                    let yearlyPrincipal = 0;
+                    let yearlyInterest = 0;
+                    
+                    for (let month = 1; month <= 12; month++) {
+                        const interestPayment = balance * monthlyInterest;
+                        const principalPayment = monthly - interestPayment;
+                        
+                        balance = Math.max(0, balance - principalPayment);
+                        yearlyPrincipal += principalPayment;
+                        yearlyInterest += interestPayment;
+                    }
+                    
+                    totalInterestPaidSoFar += yearlyInterest;
+                    totalPrincipalPaidSoFar += yearlyPrincipal;
+                    
+                    schedule.push({
+                        year,
+                        yearlyPrincipal,
+                        yearlyInterest,
+                        remainingBalance: balance,
+                        totalPrincipalPaid: totalPrincipalPaidSoFar,
+                        totalInterestPaid: totalInterestPaidSoFar
+                    });
+                }
+                
+                setAmortizationSchedule(schedule);
+            }, [interestRate, insurance, loanAmount, loanTerm, propertyTax]);
+            
+            // Currency formatter
+            const formatCurrency = (value) => {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                }).format(value);
+            };
+            
+            // Format percentage
+            const formatPercent = (value) => {
+                return value.toFixed(2);
+            };
+            
+            return (
+                <div className="max-w-4xl mx-auto p-4 bg-white rounded-lg shadow">
+                    <h1 className="text-2xl font-bold text-center mb-6">Mortgage Calculator</h1>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gray-50 p-4 rounded shadow">
+                            <h2 className="text-xl font-semibold mb-4">Mortgage Details</h2>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Home Price
+                                </label>
+                                <input
+                                    type="text"
+                                    value={homePrice === 0 ? '' : homePrice}
+                                    onChange={(e) => handleHomePriceChange(e.target.value)}
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="text-sm text-gray-500 mt-1">
+                                    {formatCurrency(homePrice)}
+                                </div>
+                            </div>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Down Payment
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <input
+                                            type="text"
+                                            value={downPayment === 0 ? '' : downPayment}
+                                            onChange={(e) => handleDownPaymentChange(e.target.value)}
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <div className="text-sm text-gray-500 mt-1">
+                                            {formatCurrency(downPayment)}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <input
+                                            type="text"
+                                            value={downPaymentPercent === 0 ? '' : formatPercent(downPaymentPercent)}
+                                            onChange={(e) => handleDownPaymentPercentChange(e.target.value)}
+                                            inputMode="decimal"
+                                            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <div className="text-sm text-gray-500 mt-1">Percentage (%)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Loan Amount
+                                </label>
+                                <input
+                                    type="text"
+                                    value={loanAmount === 0 ? '' : loanAmount}
+                                    onChange={(e) => handleLoanAmountChange(e.target.value)}
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="text-sm text-gray-500 mt-1">
+                                    {formatCurrency(loanAmount)}
+                                </div>
+                            </div>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Interest Rate (%)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={interestRate === 0 ? '' : interestRate.toString()}
+                                    onChange={(e) => handleInterestRateChange(e.target.value)}
+                                    inputMode="decimal"
+                                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Loan Term (years)
+                                </label>
+                                <select
+                                    value={loanTerm}
+                                    onChange={(e) => setLoanTerm(parseInt(e.target.value))}
+                                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="10">10 years</option>
+                                    <option value="15">15 years</option>
+                                    <option value="20">20 years</option>
+                                    <option value="25">25 years</option>
+                                    <option value="30">30 years</option>
+                                </select>
+                            </div>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Annual Property Tax
+                                </label>
+                                <input
+                                    type="text"
+                                    value={propertyTax === 0 ? '' : propertyTax}
+                                    onChange={(e) => handlePropertyTaxChange(e.target.value)}
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="text-sm text-gray-500 mt-1">
+                                    {formatCurrency(propertyTax)} per year ({formatCurrency(propertyTax / 12)} per month)
+                                </div>
+                            </div>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Annual Insurance
+                                </label>
+                                <input
+                                    type="text"
+                                    value={insurance === 0 ? '' : insurance}
+                                    onChange={(e) => handleInsuranceChange(e.target.value)}
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="text-sm text-gray-500 mt-1">
+                                    {formatCurrency(insurance)} per year ({formatCurrency(insurance / 12)} per month)
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div className="bg-gray-50 p-4 rounded shadow mb-6">
+                                <h2 className="text-xl font-semibold mb-4">Payment Summary</h2>
+                                
+                                <div className="mb-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm">Monthly Principal & Interest:</span>
+                                        <span className="font-semibold">{formatCurrency(principalAndInterest)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm">Monthly Property Tax:</span>
+                                        <span className="font-semibold">{formatCurrency(propertyTax / 12)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm">Monthly Insurance:</span>
+                                        <span className="font-semibold">{formatCurrency(insurance / 12)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+                                        <span className="text-base font-bold">Total Monthly Payment:</span>
+                                        <span className="text-lg font-bold text-blue-600">{formatCurrency(monthlyPayment)}</span>
+                                    </div>
+                                </div>
+                                
+                                <div className="mb-1">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm">Loan Amount:</span>
+                                        <span className="font-semibold">{formatCurrency(loanAmount)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm">Total Interest Paid:</span>
+                                        <span className="font-semibold">{formatCurrency(totalInterest)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm">Total Property Tax:</span>
+                                        <span className="font-semibold">{formatCurrency(propertyTax * loanTerm)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm">Total Insurance:</span>
+                                        <span className="font-semibold">{formatCurrency(insurance * loanTerm)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+                                        <span className="text-base font-bold">Total Cost Over {loanTerm} Years:</span>
+                                        <span className="text-lg font-bold text-blue-600">{formatCurrency(totalCost)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-gray-50 p-4 rounded shadow">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-semibold">Amortization Schedule</h2>
+                                    <button
+                                        onClick={() => setShowSchedule(!showSchedule)}
+                                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    >
+                                        {showSchedule ? 'Hide' : 'Show'} Schedule
+                                    </button>
+                                </div>
+                                
+                                {showSchedule && (
+                                    <div>
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Show First (years)
+                                            </label>
+                                            <select
+                                                value={maxYearsToShow}
+                                                onChange={(e) => setMaxYearsToShow(parseInt(e.target.value))}
+                                                className="p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            >
+                                                <option value="5">5 years</option>
+                                                <option value="10">10 years</option>
+                                                <option value={loanTerm}>All {loanTerm} years</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full bg-white text-sm">
+                                                <thead>
+                                                    <tr className="bg-gray-200">
+                                                        <th className="py-2 px-3 text-left">Year</th>
+                                                        <th className="py-2 px-3 text-right">Principal Paid</th>
+                                                        <th className="py-2 px-3 text-right">Interest Paid</th>
+                                                        <th className="py-2 px-3 text-right">Remaining Balance</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {amortizationSchedule.slice(0, maxYearsToShow).map((entry) => (
+                                                        <tr key={entry.year} className="border-b hover:bg-gray-50">
+                                                            <td className="py-2 px-3">{entry.year}</td>
+                                                            <td className="py-2 px-3 text-right">{formatCurrency(entry.yearlyPrincipal)}</td>
+                                                            <td className="py-2 px-3 text-right">{formatCurrency(entry.yearlyInterest)}</td>
+                                                            <td className="py-2 px-3 text-right">{formatCurrency(entry.remainingBalance)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', () =>
