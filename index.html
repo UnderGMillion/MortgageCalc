@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mortgage Calculators</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mortgage Calc">
+    
+    <!-- External Stylesheets -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .container {
+            max-width: 800px;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        @media (max-width: 576px) {
+            body {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Mortgage Calculators</h1>
+        
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab">Payment Calculator</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="affordability-tab" data-bs-toggle="tab" data-bs-target="#affordability" type="button" role="tab">Affordability Calculator</button>
+            </li>
+        </ul>
+        
+        <!-- Tab Content -->
+        <div class="tab-content" id="myTabContent">
+            <!-- Payment Calculator -->
+            <div class="tab-pane fade show active" id="payment" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Mortgage Payment Calculator</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="payment-form">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="homePrice" class="form-label">Home Price ($)</label>
+                                    <input type="number" class="form-control" id="homePrice" value="400000">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="downPayment" class="form-label">Down Payment ($)</label>
+                                    <input type="number" class="form-control" id="downPayment" value="80000">
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="loanAmount" class="form-label">Loan Amount ($)</label>
+                                    <input type="number" class="form-control" id="loanAmount" value="320000" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="interestRate" class="form-label">Interest Rate (%)</label>
+                                    <input type="number" step="0.01" class="form-control" id="interestRate" value="6.6">
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="loanTerm" class="form-label">Loan Term (years)</label>
+                                    <select class="form-select" id="loanTerm">
+                                        <option value="15">15 years</option>
+                                        <option value="20">20 years</option>
+                                        <option value="25">25 years</option>
+                                        <option value="30" selected>30 years</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="propertyTax" class="form-label">Annual Property Tax ($)</label>
+                                    <input type="number" class="form-control" id="propertyTax" value="3000">
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="insurance" class="form-label">Annual Insurance ($)</label>
+                                    <input type="number" class="form-control" id="insurance" value="1200">
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-primary" id="calculate-payment">Calculate</button>
+                            </div>
+                        </form>
+                        
+                        <hr>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <h5>Payment Summary</h5>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="row mb-2">
+                                            <div class="col-8">Principal & Interest:</div>
+                                            <div class="col-4 text-end" id="principalInterest">$0</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-8">Property Tax:</div>
+                                            <div class="col-4 text-end" id="taxPayment">$0</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-8">Insurance:</div>
+                                            <div class="col-4 text-end" id="insurancePayment">$0</div>
+                                        </div>
+                                        <hr>
+                                        <div class="row">
+                                            <div class="col-8"><strong>Total Monthly Payment:</strong></div>
+                                            <div class="col-4 text-end"><strong id="totalPayment">$0</strong></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Affordability Calculator -->
+            <div class="tab-pane fade" id="affordability" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Mortgage Affordability Calculator</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="affordability-form">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="monthlyPayment" class="form-label">Monthly Payment Budget ($)</label>
+                                    <input type="number" class="form-control" id="monthlyPayment" value="2500">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="affInterestRate" class="form-label">Interest Rate (%)</label>
+                                    <input type="number" step="0.01" class="form-control" id="affInterestRate" value="6.6">
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="affLoanTerm" class="form-label">Loan Term (years)</label>
+                                    <select class="form-select" id="affLoanTerm">
+                                        <option value="15">15 years</option>
+                                        <option value="20">20 years</option>
+                                        <option value="25">25 years</option>
+                                        <option value="30" selected>30 years</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="downPaymentPercent" class="form-label">Down Payment (%)</label>
+                                    <input type="number" class="form-control" id="downPaymentPercent" value="20">
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="affPropertyTax" class="form-label">Annual Property Tax ($)</label>
+                                    <input type="number" class="form-control" id="affPropertyTax" value="3000">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="affInsurance" class="form-label">Annual Insurance ($)</label>
+                                    <input type="number" class="form-control" id="affInsurance" value="1200">
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-success" id="calculate-affordability">Calculate</button>
+                            </div>
+                        </form>
+                        
+                        <hr>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <h5>Affordability Summary</h5>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="row mb-2">
+                                            <div class="col-8">Maximum Home Price:</div>
+                                            <div class="col-4 text-end" id="maxHomePrice">$0</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-8">Maximum Loan Amount:</div>
+                                            <div class="col-4 text-end" id="maxLoanAmount">$0</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-8">Down Payment Amount:</div>
+                                            <div class="col-4 text-end" id="downPaymentAmount">$0</div>
+                                        </div>
+                                        <hr>
+                                        <div class="row">
+                                            <div class="col-8"><strong>Principal & Interest Payment:</strong></div>
+                                            <div class="col-4 text-end"><strong id="affPrincipalInterest">$0</strong></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer Instructions -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5>Add to Home Screen</h5>
+                <ol>
+                    <li>Tap the share icon at the bottom of Safari</li>
+                    <li>Scroll down and tap "Add to Home Screen"</li>
+                    <li>Tap "Add" in the top right</li>
+                </ol>
+                <p class="mb-0">Once added, you can use this app offline!</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        }
+        
+        // Payment Calculator
+        document.getElementById('calculate-payment').addEventListener('click', function() {
+            // Get input values
+            const homePrice = parseFloat(document.getElementById('homePrice').value) || 0;
+            const downPayment = parseFloat(document.getElementById('downPayment').value) || 0;
+            const interestRate = parseFloat(document.getElementById('interestRate').value) || 0;
+            const loanTerm = parseInt(document.getElementById('loanTerm').value) || 30;
+            const propertyTax = parseFloat(document.getElementById('propertyTax').value) || 0;
+            const insurance = parseFloat(document.getElementById('insurance').value) || 0;
+            
+            // Calculate loan amount
+            const loanAmount = homePrice - downPayment;
+            document.getElementById('loanAmount').value = loanAmount;
+            
+            // Calculate monthly payment
+            const monthlyInterest = interestRate / 100 / 12;
+            const numberOfPayments = loanTerm * 12;
+            
+            let principalInterest = 0;
+            if (loanAmount > 0 && interestRate > 0) {
+                const x = Math.pow(1 + monthlyInterest, numberOfPayments);
+                principalInterest = (loanAmount * x * monthlyInterest) / (x - 1);
+            }
+            
+            const monthlyTax = propertyTax / 12;
+            const monthlyInsurance = insurance / 12;
+            const totalMonthly = principalInterest + monthlyTax + monthlyInsurance;
+            
+            // Update display
+            document.getElementById('principalInterest').textContent = formatCurrency(principalInterest);
+            document.getElementById('taxPayment').textContent = formatCurrency(monthlyTax);
+            document.getElementById('insurancePayment').textContent = formatCurrency(monthlyInsurance);
+            document.getElementById('totalPayment').textContent = formatCurrency(totalMonthly);
+        });
+        
+        // Auto-update loan amount when home price or down payment changes
+        document.getElementById('homePrice').addEventListener('input', updateLoanAmount);
+        document.getElementById('downPayment').addEventListener('input', updateLoanAmount);
+        
+        function updateLoanAmount() {
+            const homePrice = parseFloat(document.getElementById('homePrice').value) || 0;
+            const downPayment = parseFloat(document.getElementById('downPayment').value) || 0;
+            document.getElementById('loanAmount').value = homePrice - downPayment;
+        }
+        
+        // Affordability Calculator
+        document.getElementById('calculate-affordability').addEventListener('click', function() {
+            // Get input values
+            const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value) || 0;
+            const interestRate = parseFloat(document.getElementById('affInterestRate').value) || 0;
+            const loanTerm = parseInt(document.getElementById('affLoanTerm').value) || 30;
+            const downPaymentPercent = parseFloat(document.getElementById('downPaymentPercent').value) || 0;
+            const propertyTax = parseFloat(document.getElementById('affPropertyTax').value) || 0;
+            const insurance = parseFloat(document.getElementById('affInsurance').value) || 0;
+            
+            // Calculate available amount for principal and interest
+            const monthlyTax = propertyTax / 12;
+            const monthlyInsurance = insurance / 12;
+            const availableForPI = Math.max(0, monthlyPayment - monthlyTax - monthlyInsurance);
+            
+            // Calculate maximum loan amount
+            let maxLoan = 0;
+            if (availableForPI > 0 && interestRate > 0) {
+                const monthlyInterest = interestRate / 100 / 12;
+                const numberOfPayments = loanTerm * 12;
+                const x = Math.pow(1 + monthlyInterest, -numberOfPayments);
+                maxLoan = availableForPI * ((1 - x) / monthlyInterest);
+            }
+            
+            // Calculate maximum home price
+            let maxHomePrice = 0;
+            if (downPaymentPercent < 100) {
+                const downPaymentMultiplier = 1 / (1 - (downPaymentPercent / 100));
+                maxHomePrice = maxLoan * downPaymentMultiplier;
+            } else {
+                maxHomePrice = monthlyPayment * loanTerm * 12;
+            }
+            
+            // Calculate down payment amount
+            const downPaymentAmount = maxHomePrice * (downPaymentPercent / 100);
+            
+            // Update display
+            document.getElementById('maxHomePrice').textContent = formatCurrency(maxHomePrice);
+            document.getElementById('maxLoanAmount').textContent = formatCurrency(maxLoan);
+            document.getElementById('downPaymentAmount').textContent = formatCurrency(downPaymentAmount);
+            document.getElementById('affPrincipalInterest').textContent = formatCurrency(availableForPI);
+        });
+        
+        // Run calculations on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('calculate-payment').click();
+            document.getElementById('calculate-affordability').click();
+        });
+    </script>
+</body>
+</html>
